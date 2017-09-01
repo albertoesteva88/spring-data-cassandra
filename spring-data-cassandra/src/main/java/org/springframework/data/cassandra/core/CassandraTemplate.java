@@ -39,6 +39,8 @@ import org.springframework.data.cassandra.core.mapping.CassandraMappingContext;
 import org.springframework.data.cassandra.core.mapping.CassandraPersistentEntity;
 import org.springframework.data.cassandra.core.mapping.CassandraPersistentProperty;
 import org.springframework.data.cassandra.core.query.Query;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
@@ -207,6 +209,17 @@ public class CassandraTemplate implements CassandraOperations {
 	}
 
 	/* (non-Javadoc)
+	 * @see org.springframework.data.cassandra.core.CassandraOperations#select(java.lang.String, org.springframework.data.domain.Pageable, java.lang.Class)
+	 */
+	@Override
+	public <T> Slice<T> select(String cql, Pageable pageable, Class<T> entityClass) {
+
+		Assert.hasText(cql, "Statement must not be empty");
+
+		return select(new SimpleStatement(cql), pageable, entityClass);
+	}
+
+	/* (non-Javadoc)
 	 * @see org.springframework.data.cassandra.core.CassandraOperations#stream(java.lang.String, java.lang.Class)
 	 */
 	@Override
@@ -235,8 +248,7 @@ public class CassandraTemplate implements CassandraOperations {
 	// Methods dealing with com.datastax.driver.core.Statement
 	// -------------------------------------------------------------------------
 
-	/*
-	 * (non-Javadoc)
+	/* (non-Javadoc)
 	 * @see org.springframework.data.cassandra.core.CassandraOperations#select(com.datastax.driver.core.Statement, java.lang.Class)
 	 */
 	@Override
@@ -246,6 +258,27 @@ public class CassandraTemplate implements CassandraOperations {
 		Assert.notNull(entityClass, "Entity type must not be null");
 
 		return getCqlOperations().query(statement, (row, rowNum) -> getConverter().read(entityClass, row));
+	}
+
+	/* (non-Javadoc)
+	 * @see org.springframework.data.cassandra.core.CassandraOperations#select(com.datastax.driver.core.Statement, org.springframework.data.domain.Pageable, java.lang.Class)
+	 */
+	@Override
+	public <T> Slice<T> select(Statement statement, Pageable pageable, Class<T> entityClass) {
+
+		Assert.notNull(statement, "Statement must not be null");
+		Assert.notNull(pageable, "Pageable must not be null");
+		Assert.notNull(entityClass, "Entity type must not be null");
+
+		QueryUtils.validatePageable(pageable);
+
+		Statement modifiedStatement = statement.setFetchSize(pageable.getPageSize());
+
+		if (pageable instanceof CassandraPageRequest) {
+			modifiedStatement = statement.setPagingState(((CassandraPageRequest) pageable).getPagingState());
+		}
+
+		return doSelectSlice(modifiedStatement, pageable, entityClass);
 	}
 
 	/* (non-Javadoc)
@@ -261,8 +294,7 @@ public class CassandraTemplate implements CassandraOperations {
 				.map(row -> getConverter().read(entityClass, row));
 	}
 
-	/*
-	 * (non-Javadoc)
+	/* (non-Javadoc)
 	 * @see org.springframework.data.cassandra.core.CassandraOperations#selectOne(com.datastax.driver.core.Statement, java.lang.Class)
 	 */
 	@Override
@@ -285,6 +317,24 @@ public class CassandraTemplate implements CassandraOperations {
 
 		return select(getStatementFactory().select(query, getMappingContext().getRequiredPersistentEntity(entityClass)),
 				entityClass);
+	}
+
+	/* (non-Javadoc)
+	 * @see org.springframework.data.cassandra.core.CassandraOperations#select(org.springframework.data.cassandra.core.query.Query, org.springframework.data.domain.Pageable, java.lang.Class)
+	 */
+	@Override
+	public <T> Slice<T> select(Query query, Pageable pageable, Class<T> entityClass) throws DataAccessException {
+
+		Assert.notNull(query, "Query must not be null");
+		Assert.notNull(pageable, "Pageable must not be null");
+		Assert.notNull(entityClass, "Entity type must not be null");
+		Assert.isTrue(!query.getPagingState().isPresent(),
+				"Query contains a PagingState. The paging state must be provided through CassandraPageRequest");
+
+		QueryUtils.validatePageable(pageable);
+
+		return select(statementFactory.select(query, getMappingContext().getRequiredPersistentEntity(entityClass)),
+				pageable, entityClass);
 	}
 
 	/* (non-Javadoc)
@@ -519,6 +569,14 @@ public class CassandraTemplate implements CassandraOperations {
 	@Override
 	public CqlIdentifier getTableName(Class<?> entityClass) {
 		return getMappingContext().getRequiredPersistentEntity(ClassUtils.getUserClass(entityClass)).getTableName();
+	}
+
+	private <T> Slice<T> doSelectSlice(Statement select, Pageable pageable, Class<T> entityClass) {
+
+		ResultSet resultSet = getCqlOperations().queryForResultSet(select);
+		CassandraConverter converter = getConverter();
+
+		return QueryUtils.readSlice(resultSet, (row, rowNum) -> converter.read(entityClass, row), pageable);
 	}
 
 	/*

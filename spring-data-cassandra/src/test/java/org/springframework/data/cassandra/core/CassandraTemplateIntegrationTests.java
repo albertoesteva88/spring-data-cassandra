@@ -20,7 +20,9 @@ import static org.junit.Assume.*;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,6 +41,7 @@ import org.springframework.data.cassandra.domain.UserToken;
 import org.springframework.data.cassandra.repository.support.SchemaTestUtils;
 import org.springframework.data.cassandra.support.CassandraVersion;
 import org.springframework.data.cassandra.test.util.AbstractKeyspaceCreatingIntegrationTest;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.util.Version;
 
@@ -391,4 +394,36 @@ public class CassandraTemplateIntegrationTests extends AbstractKeyspaceCreatingI
 
 		assertThat(loadAfterDelete).isNull();
 	}
+
+	@Test // DATACASS-56
+	public void shouldPageRequests() {
+
+		for (int i = 0; i < 100; i++) {
+			User user = new User("heisenberg" + i, "Walter", "White");
+			template.insert(user);
+		}
+
+		Set<String> ids = new HashSet<>();
+
+		Query query = Query.empty();
+		Slice<User> slice = template.select(query, CassandraPageRequest.first(10), User.class);
+		int iterations = 0;
+		do {
+
+			iterations++;
+			assertThat(slice).hasSize(10);
+
+			slice.stream().map(User::getId).forEach(ids::add);
+
+			if (slice.hasNext()) {
+				slice = template.select(query, slice.nextPageable(), User.class);
+			} else {
+				break;
+			}
+		} while (!slice.getContent().isEmpty());
+
+		assertThat(ids).hasSize(100);
+		assertThat(iterations).isEqualTo(10);
+	}
+
 }

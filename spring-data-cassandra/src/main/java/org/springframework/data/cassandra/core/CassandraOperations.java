@@ -27,6 +27,8 @@ import org.springframework.data.cassandra.core.cql.QueryOptions;
 import org.springframework.data.cassandra.core.cql.WriteOptions;
 import org.springframework.data.cassandra.core.query.Query;
 import org.springframework.data.cassandra.core.query.Update;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.lang.Nullable;
 
 import com.datastax.driver.core.Statement;
@@ -93,6 +95,19 @@ public interface CassandraOperations {
 	<T> List<T> select(String cql, Class<T> entityClass) throws DataAccessException;
 
 	/**
+	 * Execute a {@code SELECT} query with paging and convert the resulting items to a {@link Slice} of entities.
+	 *
+	 * @param cql must not be {@literal null}.
+	 * @param pageable must not be {@literal null}.
+	 * @param entityClass The entity type must not be {@literal null}.
+	 * @return the converted results
+	 * @throws DataAccessException if there is any problem executing the query.
+	 * @since 2.0
+	 * @see CassandraPageRequest
+	 */
+	<T> Slice<T> select(String cql, Pageable pageable, Class<T> entityClass) throws DataAccessException;
+
+	/**
 	 * Execute a {@code SELECT} query and convert the resulting items to a {@link Iterator} of entities.
 	 * <p>
 	 * Returns a {@link Iterator} that wraps the Cassandra {@link com.datastax.driver.core.ResultSet}.
@@ -132,6 +147,20 @@ public interface CassandraOperations {
 	<T> List<T> select(Statement statement, Class<T> entityClass) throws DataAccessException;
 
 	/**
+	 * Execute a {@code SELECT} query with paging and convert the resulting items to a {@link Slice} of entities.
+	 *
+	 * @param statement the CQL statement, must not have fetch size/{@link com.datastax.driver.core.PagingState} set and
+	 *          must not be {@literal null}.
+	 * @param pageable must not be {@literal null}.
+	 * @param entityClass The entity type must not be {@literal null}.
+	 * @return the converted results
+	 * @throws DataAccessException if there is any problem executing the query.
+	 * @since 2.0
+	 * @see CassandraPageRequest
+	 */
+	<T> Slice<T> select(Statement statement, Pageable pageable, Class<T> entityClass) throws DataAccessException;
+
+	/**
 	 * Execute a {@code SELECT} query and convert the resulting items to a {@link Iterator} of entities.
 	 * <p>
 	 * Returns a {@link Iterator} that wraps the Cassandra {@link com.datastax.driver.core.ResultSet}.
@@ -159,6 +188,7 @@ public interface CassandraOperations {
 	// -------------------------------------------------------------------------
 	// Methods dealing with org.springframework.data.cassandra.core.query.Query
 	// -------------------------------------------------------------------------
+
 	/**
 	 * Execute a {@code SELECT} query and convert the resulting items to a {@link List} of entities.
 	 *
@@ -169,6 +199,20 @@ public interface CassandraOperations {
 	 * @since 2.0
 	 */
 	<T> List<T> select(Query query, Class<T> entityClass) throws DataAccessException;
+
+	/**
+	 * Execute a {@code SELECT} query with paging and convert the resulting items to a {@link Slice} of entities.
+	 *
+	 * @param query the query object used to create a CQL statement. Must not have fetch
+	 *          size/{@link com.datastax.driver.core.PagingState} set and must not be {@literal null}.
+	 * @param pageable must not be {@literal null}.
+	 * @param entityClass The entity type must not be {@literal null}.
+	 * @return the converted results
+	 * @throws DataAccessException if there is any problem executing the query.
+	 * @since 2.0
+	 * @see CassandraPageRequest
+	 */
+	<T> Slice<T> select(Query query, Pageable pageable, Class<T> entityClass) throws DataAccessException;
 
 	/**
 	 * Execute a {@code SELECT} query and convert the resulting items to a {@link Iterator} of entities.

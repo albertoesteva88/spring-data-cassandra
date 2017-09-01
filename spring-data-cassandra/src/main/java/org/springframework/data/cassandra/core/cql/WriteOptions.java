@@ -95,6 +95,17 @@ public class WriteOptions extends QueryOptions {
 	}
 
 	/**
+	 * Create a new {@link WriteOptionsBuilder} to mutate properties of this {@link WriteOptions}.
+	 *
+	 * @return a new {@link WriteOptionsBuilder} initialized with this {@link WriteOptions}.
+	 * @since 2.0
+	 */
+	@Override
+	public WriteOptionsBuilder mutate() {
+		return new WriteOptionsBuilder(this);
+	}
+
+	/**
 	 * @return the time to live, if set.
 	 */
 	public Duration getTtl() {
@@ -102,7 +113,7 @@ public class WriteOptions extends QueryOptions {
 	}
 
 	/**
-	 * Builder for {@link QueryOptions}.
+	 * Builder for {@link WriteOptions}.
 	 *
 	 * @author Mark Paluch
 	 * @since 1.5
@@ -112,6 +123,12 @@ public class WriteOptions extends QueryOptions {
 		protected Duration ttl = Duration.ofMillis(-1);
 
 		protected WriteOptionsBuilder() {}
+
+		protected WriteOptionsBuilder(WriteOptions writeOptions) {
+
+			super(writeOptions);
+			this.ttl = writeOptions.ttl;
+		}
 
 		/*
 		 * (non-Javadoc)

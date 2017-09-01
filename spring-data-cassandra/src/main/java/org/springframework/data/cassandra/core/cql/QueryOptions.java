@@ -94,6 +94,16 @@ public class QueryOptions {
 	}
 
 	/**
+	 * Create a new {@link QueryOptionsBuilder} to mutate properties of this {@link QueryOptions}.
+	 *
+	 * @return a new {@link QueryOptionsBuilder} initialized with this {@link QueryOptions}.
+	 * @since 2.0
+	 */
+	public QueryOptionsBuilder mutate() {
+		return new QueryOptionsBuilder(this);
+	}
+
+	/**
 	 * @return the the driver {@link ConsistencyLevel}
 	 * @since 1.5
 	 */
@@ -155,6 +165,15 @@ public class QueryOptions {
 		protected Duration readTimeout = Duration.ofMillis(-1);
 
 		QueryOptionsBuilder() {}
+
+		QueryOptionsBuilder(QueryOptions queryOptions) {
+
+			this.consistencyLevel = queryOptions.consistencyLevel;
+			this.retryPolicy = queryOptions.retryPolicy;
+			this.tracing = queryOptions.tracing;
+			this.fetchSize = queryOptions.fetchSize;
+			this.readTimeout = queryOptions.readTimeout;
+		}
 
 		/**
 		 * Sets the {@link ConsistencyLevel} to use.

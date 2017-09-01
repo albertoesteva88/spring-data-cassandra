@@ -63,6 +63,16 @@ public class UpdateOptions extends WriteOptions {
 	}
 
 	/**
+	 * Create a new {@link UpdateOptionsBuilder} to mutate properties of this {@link UpdateOptions}.
+	 *
+	 * @return a new {@link UpdateOptionsBuilder} initialized with this {@link UpdateOptions}.
+	 */
+	@Override
+	public UpdateOptionsBuilder mutate() {
+		return new UpdateOptionsBuilder(this);
+	}
+
+	/**
 	 * @return {@literal true} to apply {@code IF EXISTS} to {@code UPDATE} operations.
 	 */
 	public boolean isIfExists() {
@@ -80,6 +90,12 @@ public class UpdateOptions extends WriteOptions {
 		private boolean ifExists;
 
 		private UpdateOptionsBuilder() {}
+
+		private UpdateOptionsBuilder(UpdateOptions updateOptions) {
+
+			super(updateOptions);
+			this.ifExists = updateOptions.ifExists;
+		}
 
 		@Override
 		public UpdateOptionsBuilder consistencyLevel(com.datastax.driver.core.ConsistencyLevel consistencyLevel) {
